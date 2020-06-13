@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+ <title>Prediction Modelling</title>
+  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.9/angular.min.js"></script>
+  <script type="text/javascript">
+    
+    window.onload = function() {
+    if(!window.location.hash) {
+        window.location = window.location + '#loaded';
+        window.location.reload();
+    }
+    }
+  </script>
+ <style>
+  .button {
+  background-color: #4CAF50; /* Green */
+  border: none;
+  color: white;
+  padding: 20px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 16px;
+  margin: 4px 2px;
+  cursor: pointer;
+}
+.buttonF {border-radius: 6px;padding: 9px 28px}
+.buttonF1 {border-radius: 6px;padding: 7px 24px}
+
+* {
+  box-sizing: border-box;
+}
+
+.column1 {
+  float: left;
+  width: 25%;
+  padding: 5px;
+}
+.column2 {
+  float: left;
+  width: 50%;
+  padding: 5px;
+}
+
+/* Clearfix (clear floats) */
+.row::after {
+  content: "";
+  clear: both;
+  display: table;
+}
+</style>
+</head>
+<body>
+                
+   <div style="background-color:black;color:white;padding:5px;text-align:center;"><h1>Prediction Modelling</h1>
+   </div>
+   <div style='background-color:orange'>
+
+<br>
+        <b><label style="font-size:18px">Number of predicted values : </label></b><label style="font-size:18px">{{num2}}</label><br><br>
+          <b><label style="font-size:18px">Confidence : </label></b><label style="font-size:18px">{{conf}}</label><br><br>
+               <center>
+                <br>
+                <input type="button" onclick="location.href='/prediction'" value=Reset class="button buttonF">
+                <button onclick= 'window.location.href = "{{ url_for(".export_excel") }}"' class="button buttonF">Export to Excel</button>
+               </center>
+               <br>
+     </div><br>
+           <br>
+           <div class="row">
+  <div class="column2" align="center">
+        
+           {{table1|safe}} </div>
+
+        <div class="column2">
+           <img src="{{url_for('static', filename='prediction_plot.png')}}" height="450" width="600">
+     </div></div>
+        
+        
+</body>
+</html>

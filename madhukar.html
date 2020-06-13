@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>
+		Prediction Modelling
+	</title>
+<style>
+  .button {
+  background-color: #4CAF50; /* Green */
+  border: none;
+  color: white;
+  padding: 20px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 16px;
+  margin: 4px 2px;
+  cursor: pointer;
+}
+.buttonF {border-radius: 6px;padding: 9px 28px}
+</style>
+</head>
+<body>
+	 
+	<div style="background-color:black;color:white;padding:5px;text-align:center;"><h1>Prediction Modelling</h1></div>
+	<div  style="background-color:orange;color:black;padding:10px;">
+    
+       <button onclick= 'window.location.href = "{{ url_for(".download_sample") }}"' class="button buttonF">Sample file Format</button>
+      <br><br>
+      <form action='/userInput' method="POST" enctype="multipart/form-data">
+  		 <label style="font-size:18px">Select a Input file(.csv/xlsx):</label>
+  		 <input type='file' name='input' required> 
+  		 <br><br>
+       <label style="font-size:18px">Number of predicted values :</label>
+       <input type='number' name='num1' min="1" required>
+       <br><br>
+  		 <button type='submit' class="button buttonF">Submit</button>
+  		 <input type="button" onclick="location.href='/prediction'" value=Reset class="button buttonF">
+  		 <br><br>
+  		<b>NOTE:</b>
+  		<i><b>This tool works best on latest version of IE/Firefox browser. If you are using Firefox, Please clear your browser's cache before exporting the data to Excel.</b></i>
+  		</div>
+  		
+  		</form>
+
+</body>
+</html>
