@@ -1,1 +1,173 @@
-first change
+from flask import Flask, render_template, redirect, url_for, request, send_file
+import numpy as np
+from sklearn.linear_model import LinearRegression
+from sklearn.svm import SVR
+from sklearn.model_selection import train_test_split
+import pandas as pd
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.tree import DecisionTreeRegressor
+import xgboost as xgb
+import matplotlib.pyplot as plt
+import os
+
+app=Flask(__name__)
+app.config['UPLOAD_FOLDER'] = "C:/Users/CDRM7903/Desktop/madhukar2"
+
+@app.route("/prediction2", methods=['POST','GET'])
+def index():
+    return render_template('madhukar.html')
+
+@app.route("/userInput", methods=['POST','GET'])
+def userInput():
+    global forecast_out
+    global key_min
+    global tab
+    if request.method=='POST':
+        forecast=request.form['num1']
+        forecast_out=int(forecast)
+        if request.files:
+            f=request.files['input']
+            name=f.filename
+            if(name.endswith('.xlsx')):
+                f.filename='Input.xlsx'
+                f.save(os.path.join(app.config['UPLOAD_FOLDER'],f.filename))
+                import pandas as pd
+                df=pd.read_excel("C:/Users/CDRM7903/Desktop/madhukar2/Input.xlsx")
+            else:
+                f.filename='Input.csv'
+                f.save(os.path.join(app.config['UPLOAD_FOLDER'],f.filename))
+                df = pd.read_csv("C:/Users/CDRM7903/Desktop/madhukar2/Input.csv")
+            df2 =df.dropna(axis=0, how='all', thresh=None, subset=None, inplace=False)#for row working
+            df3 =df2.dropna(axis=1, how='all', thresh=None, subset=None, inplace=False)#for column
+            df3 =df3.rename(columns=df3.iloc[0]).drop(df3.index[0])
+            df3.rename(columns={df3.columns[0]:'Y'}, inplace=True)
+            df=df3
+            #Get the Adjusted close price
+            df=df[['Y']]
+            standarddev= df.std()#standard  deviation
+            df['Prediction'] = df[['Y']].shift(-forecast_out)
+            X=np.array(df.drop(['Prediction'],1))
+            XX=X
+            #Remove the last 'n' rows
+            X= X[:-forecast_out]
+            np.shape(X)
+            y= np.array(df['Prediction'])
+            # Get all of the Y values except the last 'n' rows
+            y=y[:-forecast_out]
+            # Spliting the data into 80% training and 20% testing
+            x_train, x_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+            # Create and train the Support vector machine(Regressor)
+            svr_rbf= SVR(kernel='rbf', C=1e3, gamma=0.1)
+            svr_rbf.fit(x_train, y_train)
+            svm_confidence= svr_rbf.score(x_test, y_test)
+
+            #Create and train the Linear Regression model
+            lr= LinearRegression()
+            lr.fit(x_train, y_train)
+            lr_confidence= lr.score(x_test, y_test)
+  
+            # Set x_forecast equal to the predictioncount rows of the original data set from Adj.Close column
+            x_forecast= np.array(df.drop(['Prediction'],1))[-forecast_out:]#np.array(df.drop(['Prediction'],1))
+            # print linear regression model predictions for the next predictioncount
+            lr_prediction= lr.predict(x_forecast)
+            #print(lr_prediction)
+            np.shape(lr_prediction)
+            # print support vector machine model predictions for the next next predictioncount
+            svm_prediction= svr_rbf.predict(x_forecast)
+            regressor = RandomForestRegressor(n_estimators = 10, random_state = 0)
+            regressor.fit(x_train, y_train)
+            #test model
+            RF_confidence= regressor.score(x_test, y_test)
+            RF_prediction= regressor.predict(x_forecast)
+            regressorDT = DecisionTreeRegressor(random_state = 0)
+            regressorDT.fit(x_train, y_train)
+            regressorDT.fit(X, y)
+            #test model
+            DT_confidence= regressorDT.score(x_test, y_test)
+            # print("DT confidence: ", DT_confidence)
+            DT_prediction= regressorDT.predict(x_forecast)
+            # print(DT_prediction)
+            #XGB Regessor
+            XGBRegressor =xgb.XGBRegressor
+            regressorXGB = XGBRegressor(random_state = 0)
+            regressorXGB.fit(x_train, y_train)
+            regressorXGB.fit(X, y)
+            XGB_confidence= regressorXGB.score(x_test, y_test)
+            # print("XGB confidence: ", XGB_confidence)
+            XGB_prediction= regressorXGB.predict(x_forecast)
+            #R2 of each models
+            print("svm confidence: ", svm_confidence)
+            print("lr confidence: ", lr_confidence)
+            print("RF confidence: ", RF_confidence)
+            print("DT confidence: ", DT_confidence)
+            print("XGB confidence: ", XGB_confidence)
+            # Prediction of each model
+            print(svm_prediction)
+            print(lr_prediction)
+            print(RF_prediction)
+            print(DT_prediction)
+            print(XGB_prediction)
+            
+            
+            # pd.DataFrame([svm_confidence]).to_csv("svm.csv", index=False)# with mininum confidence name working
+            
+            
+            writer = pd.ExcelWriter('predicted_output.xlsx', engine='xlsxwriter')
+            df1 = pd.DataFrame({'SVM Predictions': svm_prediction,'LR Predictions' : lr_prediction, 'RF Predictions' : RF_prediction, 'DT Predictions' : DT_prediction, 'XGB Predictions' : XGB_prediction})
+            pf = pd.DataFrame({'SVM conf': ([svm_confidence]),'LR conf' : ([lr_confidence]), 'RF conf' : ([RF_confidence]), 'DT conf' : ([DT_confidence]), 'XGB conf' : ([XGB_confidence])})
+            
+            
+            df1.index += 1 
+            df1.to_excel(writer, sheet_name='Sheet1', startrow=6, header=False, index=True, startcol=0)
+            pf.to_excel(writer, sheet_name='Sheet1', startrow=3, header=False, index=False, startcol=1)
+            standarddev.to_excel(writer, sheet_name='Sheet1', startrow=0, header=False, index=False, startcol=2)
+            
+            
+            # df.to_csv("predicted_output.csv", index=False )# with mininum confidence name important
+            # pf.to_csv("predicted_output_2.csv", index=False)# with mininum confidence name#######
+            
+            
+            # Get the xlsxwriter workbook and worksheet objects.
+            workbook  = writer.book
+            worksheet = writer.sheets['Sheet1']
+            worksheet.write('B1', 'The Standard Deviation of the user input data is:')
+            worksheet.write('D1', ' ')
+            worksheet.write('E1', '  ')
+            worksheet.write('F1', '   ')
+            
+            # Write the column headers with the defined format.
+            for col_num, value in enumerate(df1.columns.values):
+                worksheet.write(5, col_num + 1, value)
+                
+            for col_num, value in enumerate(pf.columns.values):
+                worksheet.write(2, col_num + 1, value)
+            writer.save()
+            
+            
+            import pandas as pd
+            data_xls = pd.read_excel('predicted_output.xlsx', 'Sheet1', index_col=None)
+            data_xls.to_csv('predicted_output.csv', encoding='utf-8')
+
+            tab=pd.DataFrame(data_xls)
+            tab.columns=['Predicted Values']
+    return redirect(url_for('final'))
+
+
+
+@app.route("/final", methods=['POST','GET'])
+def final():
+    return render_template('output.html', num2=forecast_out,  table1=tab.to_html(index=True))
+
+
+@app.route('/sample')
+def download_sample():
+	path1='static/sample.xlsx'
+	return send_file(path1, as_attachment=True)
+
+@app.route('/export')
+def export_excel():
+	path2='C:/Users/CDRM7903/Desktop/madhukar2/predicted_output.csv'
+	return send_file(path2, as_attachment=True)
+        
+if __name__=="__main__":
+    app.run()
